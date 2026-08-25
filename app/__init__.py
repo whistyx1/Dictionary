@@ -1,0 +1,1 @@
+"""Learn Words application package."""

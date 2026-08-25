@@ -1,2 +1,23 @@
-# Dictionary
-Write down words and their translations, look at flashcards, take tests, and view statistics.
+# Learn Words
+
+Оновлена версія застосунку для вивчення слів на **PyQt6** та **SQLite**.
+
+```powershell
+py -m pip install -r requirements.txt
+py Learn_words_program.py
+```
+
+Усі слова зберігаються локально в SQLite-базі `data/words.db`.
+
+Зображення для нових слів автоматично шукаються через Wikimedia Commons у
+фоновому потоці та зберігаються в SQLite. Окремий API-ключ не потрібен.
+
+Перед збереженням форма локально перевіряє алфавіт і підозрілі послідовності,
+а потім у фоні перевіряє англійське слово та український переклад у Wiktionary.
+Рідкісний термін, якого немає у словнику, можна зберегти після попередження.
+
+Перевірка шару бази даних:
+
+```powershell
+py -m unittest discover -v
+```

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
 
 from .models import Word
 
@@ -21,8 +23,17 @@ class WordRepository:
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
+    @contextmanager
+    def _session(self) -> Iterator[sqlite3.Connection]:
+        connection = self._connect()
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
+
     def _create_schema(self) -> None:
-        with self._connect() as db:
+        with self._session() as db:
             db.execute("""
                 CREATE TABLE IF NOT EXISTS words (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,7 +49,7 @@ class WordRepository:
 
     def add(self, word: Word) -> int:
         try:
-            with self._connect() as db:
+            with self._session() as db:
                 cursor = db.execute(
                     """INSERT INTO words
                        (word, translation, level, learned, category, image_url)
@@ -53,24 +64,24 @@ class WordRepository:
             raise
 
     def all(self) -> list[Word]:
-        with self._connect() as db:
+        with self._session() as db:
             rows = db.execute("SELECT * FROM words ORDER BY id").fetchall()
         return [self._from_row(row) for row in rows]
 
     def delete(self, word_id: int) -> None:
-        with self._connect() as db:
+        with self._session() as db:
             db.execute("DELETE FROM words WHERE id = ?", (word_id,))
 
     def mark_learned(self, word_id: int) -> None:
-        with self._connect() as db:
+        with self._session() as db:
             db.execute("UPDATE words SET learned = 1 WHERE id = ?", (word_id,))
 
     def update_image(self, word_id: int, image_url: str) -> None:
-        with self._connect() as db:
+        with self._session() as db:
             db.execute("UPDATE words SET image_url = ? WHERE id = ?", (image_url, word_id))
 
     def stats(self) -> tuple[int, int]:
-        with self._connect() as db:
+        with self._session() as db:
             row = db.execute(
                 "SELECT COUNT(*) AS total, COALESCE(SUM(learned), 0) AS learned FROM words"
             ).fetchone()

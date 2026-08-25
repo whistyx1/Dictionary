@@ -72,9 +72,17 @@ class WordRepository:
         with self._session() as db:
             db.execute("DELETE FROM words WHERE id = ?", (word_id,))
 
+    def delete_many(self, word_ids: list[int]) -> None:
+        with self._session() as db:
+            db.executemany("DELETE FROM words WHERE id = ?", ((word_id,) for word_id in word_ids))
+
     def mark_learned(self, word_id: int) -> None:
         with self._session() as db:
             db.execute("UPDATE words SET learned = 1 WHERE id = ?", (word_id,))
+
+    def mark_many_learned(self, word_ids: list[int]) -> None:
+        with self._session() as db:
+            db.executemany("UPDATE words SET learned = 1 WHERE id = ?", ((word_id,) for word_id in word_ids))
 
     def update_image(self, word_id: int, image_url: str) -> None:
         with self._session() as db:

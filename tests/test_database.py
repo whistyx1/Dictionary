@@ -29,5 +29,13 @@ class WordRepositoryTests(unittest.TestCase):
         with self.assertRaises(DuplicateWordError):
             self.repository.add(Word("apple", "інший переклад"))
 
+    def test_batch_mark_and_delete(self):
+        first = self.repository.add(Word("apple", "яблуко"))
+        second = self.repository.add(Word("pear", "груша"))
+        self.repository.mark_many_learned([first, second])
+        self.assertEqual(self.repository.stats(), (2, 2))
+        self.repository.delete_many([first, second])
+        self.assertEqual(self.repository.stats(), (0, 0))
+
 if __name__ == "__main__":
     unittest.main()

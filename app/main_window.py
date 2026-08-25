@@ -9,7 +9,8 @@ from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QButtonGroup, QComboBox, QFormLayout, QGroupBox, QHBoxLayout, QLabel,
     QLineEdit, QListWidget, QListWidgetItem, QMainWindow, QMessageBox,
-    QProgressBar, QPushButton, QRadioButton, QTabWidget, QVBoxLayout, QWidget,
+    QProgressBar, QPushButton, QRadioButton, QAbstractItemView, QTabWidget,
+    QVBoxLayout, QWidget,
 )
 
 from .database import DuplicateWordError, WordRepository
@@ -171,8 +172,9 @@ class MainWindow(QMainWindow):
         self.search_input.textChanged.connect(self.refresh_dictionary)
         layout.addWidget(self.search_input)
         self.word_list = QListWidget()
+        self.word_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self.word_list.itemDoubleClicked.connect(self.open_selected_card)
-        self.word_list.currentItemChanged.connect(self._dictionary_selection_changed)
+        self.word_list.itemSelectionChanged.connect(self._dictionary_selection_changed)
         layout.addWidget(self.word_list, 1)
         actions = QHBoxLayout()
         self.learn_button = QPushButton("✓  Позначити як вивчене")
@@ -326,28 +328,34 @@ class MainWindow(QMainWindow):
             item.setData(Qt.ItemDataRole.UserRole, word.id)
             item.setToolTip(f"Категорія: {word.category} · Рівень: {word.level}")
             self.word_list.addItem(item)
-        self._dictionary_selection_changed(self.word_list.currentItem())
+        self._dictionary_selection_changed()
 
-    def _dictionary_selection_changed(self, current: QListWidgetItem | None, _previous=None) -> None:
-        has_selection = current is not None
+    def _dictionary_selection_changed(self) -> None:
+        selected_items = self.word_list.selectedItems()
+        has_selection = bool(selected_items)
         self.delete_button.setEnabled(has_selection)
         if not has_selection:
             self.learn_button.setEnabled(False)
             self.learn_button.setText("✓  Позначити як вивчене")
             return
-        word_id = current.data(Qt.ItemDataRole.UserRole)
-        selected = next((word for word in self.words if word.id == word_id), None)
-        already_learned = bool(selected and selected.learned)
-        self.learn_button.setEnabled(not already_learned)
-        self.learn_button.setText("✓  Уже вивчено" if already_learned else "✓  Позначити як вивчене")
+        selected_ids = {item.data(Qt.ItemDataRole.UserRole) for item in selected_items}
+        unlearned_count = sum(1 for word in self.words if word.id in selected_ids and not word.learned)
+        self.learn_button.setEnabled(unlearned_count > 0)
+        if unlearned_count == 0:
+            self.learn_button.setText("✓  Усі вибрані вже вивчено")
+        elif len(selected_items) == 1:
+            self.learn_button.setText("✓  Позначити як вивчене")
+        else:
+            self.learn_button.setText(f"✓  Позначити як вивчені ({unlearned_count})")
 
     def mark_selected_learned(self) -> None:
-        item = self.word_list.currentItem()
-        if item is None:
-            QMessageBox.information(self, "Нічого не вибрано", "Спочатку виберіть слово у списку.")
+        items = self.word_list.selectedItems()
+        if not items:
+            QMessageBox.information(self, "Нічого не вибрано", "Спочатку виберіть одне або кілька слів.")
             return
         try:
-            self.repository.mark_learned(item.data(Qt.ItemDataRole.UserRole))
+            word_ids = [item.data(Qt.ItemDataRole.UserRole) for item in items]
+            self.repository.mark_many_learned(word_ids)
             self.words = self.repository.all()
             self.refresh_dictionary()
             self.refresh_stats()
@@ -484,19 +492,22 @@ class MainWindow(QMainWindow):
                 break
 
     def delete_selected(self) -> None:
-        item = self.word_list.currentItem()
-        if item is None:
-            QMessageBox.information(self, "Нічого не вибрано", "Спочатку виберіть слово у списку.")
+        items = self.word_list.selectedItems()
+        if not items:
+            QMessageBox.information(self, "Нічого не вибрано", "Спочатку виберіть одне або кілька слів.")
             return
+        count = len(items)
+        description = f"запис «{items[0].text()}»" if count == 1 else f"вибрані записи ({count})"
         answer = QMessageBox.question(
-            self, "Підтвердження", f"Видалити запис «{item.text()}»?",
+            self, "Підтвердження", f"Видалити {description}?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
         if answer != QMessageBox.StandardButton.Yes:
             return
         try:
-            self.repository.delete(item.data(Qt.ItemDataRole.UserRole))
+            word_ids = [item.data(Qt.ItemDataRole.UserRole) for item in items]
+            self.repository.delete_many(word_ids)
             self.refresh_all()
         except sqlite3.Error as error:
             QMessageBox.critical(self, "Помилка бази даних", f"Не вдалося видалити слово:\n{error}")

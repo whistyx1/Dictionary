@@ -24,7 +24,7 @@ modules, migrated to PyQt6, and given safer error handling.
 - Automatically find card images through Wikimedia Commons.
 - Practise with a multiple-choice translation quiz.
 - Automatically mark correctly answered words as learned.
-- Search by word or translation.
+- Search by word or translation and select multiple entries with Ctrl or Shift.
 - View learned-word statistics and overall progress.
 - Detect duplicates without regard to letter case.
 - Validate alphabets, suspicious sequences, and empty input.
@@ -113,7 +113,8 @@ python3 Learn_words_program.py
 4. Press **Add to dictionary** or press Enter from the translation field.
 5. Review saved entries on the **Cards** tab.
 6. Use **Test** to practise translations.
-7. Open **Dictionary** to search, delete, or manually mark a word as learned.
+7. Open **Dictionary** to search, delete, or manually mark words as learned.
+   Hold **Ctrl** to select individual entries or **Shift** to select a range.
 8. Check **Progress** to see the learned percentage.
 
 The English field accepts Latin letters, spaces, apostrophes, and hyphens. The
@@ -173,7 +174,7 @@ py -m unittest discover -v
 Expected result:
 
 ```text
-Ran 2 tests
+Ran 3 tests
 OK
 ```
 

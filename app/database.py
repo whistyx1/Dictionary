@@ -1,14 +1,9 @@
 from __future__ import annotations
 
-import json
-import logging
 import sqlite3
 from pathlib import Path
 
 from .models import Word
-
-LOGGER = logging.getLogger(__name__)
-
 
 class DuplicateWordError(ValueError):
     pass
@@ -80,34 +75,6 @@ class WordRepository:
                 "SELECT COUNT(*) AS total, COALESCE(SUM(learned), 0) AS learned FROM words"
             ).fetchone()
         return int(row["total"]), int(row["learned"])
-
-    def import_json_once(self, json_path: Path) -> int:
-        if not json_path.exists() or self.all():
-            return 0
-        try:
-            raw = json.loads(json_path.read_text(encoding="utf-8"))
-            if not isinstance(raw, list):
-                raw = [raw]
-        except (OSError, json.JSONDecodeError) as error:
-            LOGGER.warning("Could not import legacy JSON: %s", error)
-            return 0
-        imported = 0
-        for item in raw:
-            try:
-                source = str(item.get("word", "")).strip()
-                translation = str(item.get("translate", item.get("translation", ""))).strip()
-                if not source or not translation:
-                    continue
-                level = str(item.get("level", "medium")).lower()
-                if level not in {"easy", "medium", "hard"}:
-                    level = "medium"
-                self.add(Word(source, translation, level, bool(item.get("learned")),
-                              str(item.get("category") or "other"),
-                              str(item.get("image_url") or "")))
-                imported += 1
-            except (DuplicateWordError, AttributeError, TypeError):
-                continue
-        return imported
 
     @staticmethod
     def _from_row(row: sqlite3.Row) -> Word:

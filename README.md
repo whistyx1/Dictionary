@@ -7,8 +7,7 @@ py -m pip install -r requirements.txt
 py Learn_words_program.py
 ```
 
-При першому запуску дані з `words_data.json` автоматично імпортуються в
-`data/words.db`. JSON після цього більше не використовується.
+Усі слова зберігаються локально в SQLite-базі `data/words.db`.
 
 Зображення для нових слів автоматично шукаються через Wikimedia Commons у
 фоновому потоці та зберігаються в SQLite. Окремий API-ключ не потрібен.

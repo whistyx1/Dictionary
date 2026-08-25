@@ -17,7 +17,6 @@ def main() -> int:
     root = Path(__file__).resolve().parent.parent
     try:
         repository = WordRepository(root / "data" / "words.db")
-        repository.import_json_once(root / "words_data.json")
         window = MainWindow(repository)
         window.show()
         return app.exec()

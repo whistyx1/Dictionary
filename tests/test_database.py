@@ -1,4 +1,3 @@
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -29,14 +28,6 @@ class WordRepositoryTests(unittest.TestCase):
         self.repository.add(Word("Apple", "яблуко"))
         with self.assertRaises(DuplicateWordError):
             self.repository.add(Word("apple", "інший переклад"))
-
-    def test_legacy_json_is_imported_only_once(self):
-        source = Path(self.temp_dir.name) / "words.json"
-        source.write_text(json.dumps([{"word": "tea", "translate": "чай"}]), encoding="utf-8")
-        self.assertEqual(self.repository.import_json_once(source), 1)
-        self.assertEqual(self.repository.import_json_once(source), 0)
-        self.assertEqual(len(self.repository.all()), 1)
-
 
 if __name__ == "__main__":
     unittest.main()
